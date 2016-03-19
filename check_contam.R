@@ -122,6 +122,13 @@ uniq.allSites <- split(uniq.allSites, uniq.allSites$patient)
 message("Checking for contamination between:")
 message(list(names(uniq.allSites)))
 possible.contam <- track_clones(uniq.allSites, gap = 5L, track.origin = FALSE)
+
+#Post crossover check removal of redundant reads
+possible.contam <- unlist(possible.contam)
+possible.contam <- split(possible.contam, possible.contam$sampleName)
+possible.contam <- unlist(unique(possible.contam))
+possible.contam <- split(possible.contam, possible.contam$posid)
+
 possible.contam.gr <- unlist(possible.contam)
 
 #Save data
