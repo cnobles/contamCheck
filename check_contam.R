@@ -16,6 +16,18 @@ sampleInfo$GTSP <- sapply(strsplit(
   as.character(sampleInfo$alias), 
   "-"), "[", 1)
 
+if(any(grepl("UninfectedControl", sampleInfo$GTSP))){
+  uncPos <- grep("UninfectedControl", sampleInfo$GTSP)
+  sampleInfo[uncPos, "GTSP"] <- "UNC"
+  rm(uncPos)
+}
+
+if(any(grepl("NoTemplateControl", sampleInfo$GTSP))){
+  ntcPos <- grep("NoTemplateControl", sampleInfo$GTSP)
+  sampleInfo[ntcPos, "GTSP"] <- "NTC"
+  rm(ntcPos)
+}
+
 if(nrow(sampleInfo) > 0){
   message(paste0("Loaded information for ", 
                  nrow(sampleInfo), 
@@ -49,14 +61,14 @@ stopifnot( (NA %in% match(GTSP_query, isThere)) == FALSE)
 message("Received patient information for:")
 message(list(isThere))
 
-if(any(grepl("UninfectedControls", sampleInfo$GTSP))){
+if(any(grepl("UNC", sampleInfo$GTSP))){
   patientInfo <- rbind(patientInfo, data.frame(
-    "SpecimenAccNum" = "UninfectedControls", "Patient" = "UNC")
+    "SpecimenAccNum" = "UNC", "Patient" = "UNC")
     )
 }
-if(any(grepl("NoTemplateControls", sampleInfo$GTSP))){
+if(any(grepl("NTC", sampleInfo$GTSP))){
   patientInfo <- rbind(patientInfo, data.frame(
-    "SpecimenAccNum" = "NoTemplateControls", "Patient" = "NTC")
+    "SpecimenAccNum" = "NTC", "Patient" = "NTC")
     )
 }
 
@@ -122,6 +134,14 @@ uniq.allSites <- split(uniq.allSites, uniq.allSites$patient)
 message("Checking for contamination between:")
 message(list(names(uniq.allSites)))
 possible.contam <- track_clones(uniq.allSites, gap = 5L, track.origin = FALSE)
+
+#Post crossover check removal of redundant reads
+if(length(possible.contam) > 0){
+  possible.contam <- unlist(possible.contam)
+  possible.contam <- split(possible.contam, possible.contam$sampleName)
+  possible.contam <- unlist(unique(possible.contam))
+  possible.contam <- split(possible.contam, possible.contam$posid)
+}
 possible.contam.gr <- unlist(possible.contam)
 
 #Save data
@@ -151,7 +171,7 @@ stats <- data.frame(
       possible.contam.gr[grep("NTC", possible.contam.gr$patient)]$posid
   ))),
   "stat" = c("patientCount", "controlCount", "sitesConsidered", "uniqSitesXOver",
-             "uniqSonicFragsXOver", "totalSonicFragsXOver", "patientsXOver",
+             "uniqSonicFragsXOver", "totalSonicFragsXOver", "subjectsInvolved",
              "UninfectedXOver", "NoTemplateXOver")
 )
 write.table(stats, file = paste0(dataDir, "/", runName, ".contam.stats.tsv"), 

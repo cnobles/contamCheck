@@ -14,9 +14,9 @@ primer.full <- DNAString("CAGACCCTTTTAGTCAGTGTGGAAAATC")
 primer <- DNAString("GAAAATC")
 ltrbit <- DNAString("TCTAGCA")
 primerltr <- c(primer, ltrbit)
-exdPrimer <- primer.full[15:28]
+extPrimer <- primer.full[15:28]
 add_primer <- primer.full[15:21]
-extPriLTR <- c(exdPrimer, ltrbit)
+extPriLTR <- c(extPrimer, ltrbit)
 
 get_upstream_seqs <- function(sites, upstream, genome){
   sites.fl <- flank(sites, width = -1, start = TRUE)
