@@ -16,6 +16,18 @@ sampleInfo$GTSP <- sapply(strsplit(
   as.character(sampleInfo$alias), 
   "-"), "[", 1)
 
+if(any(grepl("UninfectedControl", sampleInfo$GTSP))){
+  uncPos <- grep("UninfectedControl", sampleInfo$GTSP)
+  sampleInfo[uncPos, "GTSP"] <- "UNC"
+  rm(uncPos)
+}
+
+if(any(grepl("NoTemplateControl", sampleInfo$GTSP))){
+  ntcPos <- grep("NoTemplateControl", sampleInfo$GTSP)
+  sampleInfo[ntcPos, "GTSP"] <- "NTC"
+  rm(ntcPos)
+}
+
 if(nrow(sampleInfo) > 0){
   message(paste0("Loaded information for ", 
                  nrow(sampleInfo), 
@@ -49,14 +61,14 @@ stopifnot( (NA %in% match(GTSP_query, isThere)) == FALSE)
 message("Received patient information for:")
 message(list(isThere))
 
-if(any(grepl("UninfectedControls", sampleInfo$GTSP))){
+if(any(grepl("UNC", sampleInfo$GTSP))){
   patientInfo <- rbind(patientInfo, data.frame(
-    "SpecimenAccNum" = "UninfectedControls", "Patient" = "UNC")
+    "SpecimenAccNum" = "UNC", "Patient" = "UNC")
     )
 }
-if(any(grepl("NoTemplateControls", sampleInfo$GTSP))){
+if(any(grepl("NTC", sampleInfo$GTSP))){
   patientInfo <- rbind(patientInfo, data.frame(
-    "SpecimenAccNum" = "NoTemplateControls", "Patient" = "NTC")
+    "SpecimenAccNum" = "NTC", "Patient" = "NTC")
     )
 }
 
