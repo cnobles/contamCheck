@@ -136,11 +136,12 @@ message(list(names(uniq.allSites)))
 possible.contam <- track_clones(uniq.allSites, gap = 5L, track.origin = FALSE)
 
 #Post crossover check removal of redundant reads
-possible.contam <- unlist(possible.contam)
-possible.contam <- split(possible.contam, possible.contam$sampleName)
-possible.contam <- unlist(unique(possible.contam))
-possible.contam <- split(possible.contam, possible.contam$posid)
-
+if(length(possible.contam) > 0){
+  possible.contam <- unlist(possible.contam)
+  possible.contam <- split(possible.contam, possible.contam$sampleName)
+  possible.contam <- unlist(unique(possible.contam))
+  possible.contam <- split(possible.contam, possible.contam$posid)
+}
 possible.contam.gr <- unlist(possible.contam)
 
 #Save data
@@ -170,7 +171,7 @@ stats <- data.frame(
       possible.contam.gr[grep("NTC", possible.contam.gr$patient)]$posid
   ))),
   "stat" = c("patientCount", "controlCount", "sitesConsidered", "uniqSitesXOver",
-             "uniqSonicFragsXOver", "totalSonicFragsXOver", "patientsXOver",
+             "uniqSonicFragsXOver", "totalSonicFragsXOver", "subjectsInvolved",
              "UninfectedXOver", "NoTemplateXOver")
 )
 write.table(stats, file = paste0(dataDir, "/", runName, ".contam.stats.tsv"), 
