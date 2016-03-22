@@ -147,7 +147,7 @@ possible.contam.gr <- unlist(possible.contam)
 #Save data
 message("Saving data.")
 save(possible.contam, 
-     file = paste0(dataDir, "/", runName, ".possilble.contam.RData"))
+     file = paste0(dataDir, "/", runName, ".possible.contam.RData"))
 stats <- data.frame(
   "amount" = c(length(unique(
       sampleInfo[grep("GTSP", sampleInfo$GTSP), "patient"]
