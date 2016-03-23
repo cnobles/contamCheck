@@ -1,66 +1,3 @@
-library(ggplot2)
-
-#Test data sets
-
-load_intSiteCaller_data <- function(sampleName, dataType, dataDir){
-  content <- list.files(path = paste(dataDir, sampleName, sep = "/"))
-  isThere <- any(grepl(dataType, content))
-  
-  if(isThere){
-    file <- grep(dataType, content, value = TRUE)
-    filePath <- paste(dataDir, sampleName, file, sep = "/")
-    load(filePath)
-  }
-  
-  if(dataType == "allSites" & isThere){
-    allSites
-  }else if(dataType == "multihitData" & isThere){
-    multihitData
-  }else if(dataType == "keys" & isThere){
-    keys
-  }else if(dataType == "sites.final" & isThere){
-    sites.final
-  }else if(isThere){
-    stop("dataType not supported by this function. Check dataType.")
-  }
-}
-
-density_plot_score_output <- function(score.df){
-  scoreTypes <- names(score.df[,2:ncol(score.df)])
-  df <- data.frame(
-    "sequence" = c(sapply(1:length(scoreTypes), function(i) 
-      rep(scoreTypes[i], nrow(score.df)))),
-    "score" = c(sapply(1:length(scoreTypes), function(i)
-      score.df[,i+1]))
-  )
-  ggplot(df, aes(score, fill = sequence, colour = sequence)) + geom_density(alpha = 0.1)
-}
-
-combine_score_sets <- function(score.list, score.type = "total.score"){
-  scoreSets <- names(score.list)
-  data.frame(
-    "set" = unlist(sapply(1:length(score.list), function(i)
-      rep(scoreSets[i], nrow(score.list[[i]])))),
-    "score" = unlist(sapply(1:length(scoreSets), function(i)
-      score.list[[i]][, score.type]))
-  )
-}
-
-plot_scores <- function(score.list, score.type = "total.score"){
-  df <- combine_score_sets(
-    score.list = score.list,
-    score.type = score.type)
-  ggplot(df, aes(score, fill = set, colour = set)) + 
-    geom_density(alpha = 0.1, adjust = 2/3)
-}
-
-t.test_scores <- function(score.list, score.type = "total.score"){
-  df <- combine_score_sets(
-    score.list = score.list,
-    score.type = score.type)
-  pairwise.t.test(df$score, df$set, p.adjust.method = "holm")
-}
-
 #simulated Sites
 simSitesInfo <- read.csv(
   "../intSiteData/multihit_clus_branch/simSites/sampleInfo.tsv", 
@@ -84,54 +21,77 @@ hapSites <- unlist(GRangesList(lapply(hapSitesInfo[1:12, "alias"], function(samp
     dataDir = "../intSiteData/older_branches/blocking_oligo"
   )
 })))
+hapSites <- remove_repeats(hapSites)
 hapSeqs <- get_upstream_seqs(hapSites, upstream = 35, genome)
 hapSeqs <- DNAStringSet(grep("N", hapSeqs, value = TRUE, invert = TRUE))
 hapScores <- test_confidence_scores(hapSeqs, ltrbit, extPrimer)
 
 #hiv set 0 - 0 mismatch
-hiv0SiteInfo <- read.csv("../intSiteData/zero_mismatch/HIVLAT_Set_0_std/sampleInfo.tsv", sep = "\t")
-hiv0Sites <- lapply(hiv0SiteInfo[, "alias"], function(sampleName){
-  load_intSiteCaller_data(
-    sampleName,
-    dataType = "allSites",
-    dataDir = "../intSiteData/zero_mismatch/HIVLAT_Set_0_std"
-  )
-})
-hiv0Sites <- unlist(GRangesList(hiv0Sites[sapply(hiv0Sites, class) == "GRanges"]))
-hiv0Seqs <- get_upstream_seqs(hiv0Sites, upstream = 35, genome)
-hiv0Seqs <- DNAStringSet(grep("N", hiv0Seqs, value = TRUE, invert = TRUE))
-hiv0Scores <- test_confidence_scores(hiv0Seqs, ltrbit, extPrimer)
+hiv0_0_Scores <- load_and_process_caller_data("~/intSiteData/zero_mismatch/HIVLAT_Set_0_std")
+#hiv set 0 - 1 mismatch
+hiv0_1_Scores <- load_and_process_caller_data("~/intSiteData/one_mismatch/Sample_Set_0")
+#hiv set 0 - 2 mismatch
+hiv0_2_Scores <- load_and_process_caller_data("~/intSiteData/multihit_clus_branch/Sample_Set_0")
+
+#hiv set 0 - 1 mismatch crossover
+hiv0_CO_1_Scores <- load_and_process_possible_contam("~/intSiteData/one_mismatch/Sample_Set_0")
+#hiv set 0 - 2 mismatch crossover
+hiv0_CO_2_Scores <- load_and_process_possible_contam("~/intSiteData/multihit_clus_branch/Sample_Set_0")
+
 
 #hiv set 1 - 0 mismatch
-hiv1SiteInfo <- read.csv("../intSiteData/zero_mismatch/HIVLAT_Set_1_std/sampleInfo.tsv", sep = "\t")
-hiv1Sites <- lapply(hiv1SiteInfo[, "alias"], function(sampleName){
-  load_intSiteCaller_data(
-    sampleName,
-    dataType = "allSites",
-    dataDir = "../intSiteData/zero_mismatch/HIVLAT_Set_1_std"
-  )
-})
-hiv1Sites <- unlist(GRangesList(hiv1Sites[sapply(hiv1Sites, class) == "GRanges"]))
-hiv1Seqs <- get_upstream_seqs(hiv1Sites, upstream = 35, genome)
-hiv1Seqs <- DNAStringSet(grep("N", hiv1Seqs, value = TRUE, invert = TRUE))
-hiv1Scores <- test_confidence_scores(hiv1Seqs, ltrbit, extPrimer)
+hiv1_0_Scores <- load_and_process_caller_data("~/intSiteData/zero_mismatch/HIVLAT_Set_1_std")
+#hiv set 1 - 1 mismatch
+hiv1_1_Scores <- load_and_process_caller_data("~/intSiteData/one_mismatch/Set_1")
+#hiv set 1 - 2 mismatch
+hiv1_2_Scores <- load_and_process_caller_data("~/intSiteData/multihit_clus_branch/HIVLAT_Set_1")
 
-#hiv set 1 contamSites
-load("../intSiteData/zero_mismatch/HIVLAT_Set_1_std/HIVLAT_Set_1_std.possilble.contam.RData")
-hiv1ContamSites <- unlist(possible.contam)
-load("../intSiteData/zero_mismatch/HIVLAT_Set_1_alt3LTR/HIVLAT_Set_1_alt3LTR.possilble.contam.RData")
-hiv1ContamSites <- c(hiv1ContamSites, unlist(possible.contam))
-hiv1ContamSeqs <- get_upstream_seqs(hiv1ContamSites, upstream = 35, genome)
-hiv1ContamSeqs <- DNAStringSet(grep("N", hiv1ContamSeqs, value = TRUE, invert = TRUE))
-hiv1ContamScores <- test_confidence_scores(hiv1ContamSeqs, ltrbit, extPrimer)
+#hiv set 1 - 0 mismatch crossover
+hiv1_CO_0_Scores <- load_and_process_possible_contam("~/intSiteData/zero_mismatch/HIVLAT_Set_1_std")
+#hiv set 1 - 1 mismatch crossover
+hiv1_CO_1_Scores <- load_and_process_possible_contam("~/intSiteData/one_mismatch/Set_1")
+#hiv set 1 - 2 mismatch crossover
+hiv1_CO_2_Scores <- load_and_process_possible_contam("~/intSiteData/multihit_clus_branch/HIVLAT_Set_1")
 
-#Partial sets
-sets.list <- list(hapScores, hiv1Scores, hiv1ContamScores)
-names(sets.list) <- c("hap", "hiv_set_1", "hiv_contam")
+#Partial sets looking at the upstream sequence complementartity to the primer sequence
+cont.sets <- list(simScores, hapScores)
+names(cont.sets) <- c("simSites", "Lib4-HAP1")
+cont.plot <- plot_scores(cont.sets, score.type = "primer.score")
+cont.plot
 
-sets.list <- list(simScores, hapScores, hiv0Scores, hiv1Scores, hiv1ContamScores)
-names(sets.list) <- c("sim", "hap", "hiv_set_0", "hiv_set_1", "hiv_contam")
+hiv0.sets <- list(simScores, hiv0_0_Scores, hiv0_1_Scores, hiv0_2_Scores)
+names(hiv0.sets) <- c("simSites", "Set_0_0mismatch", "Set_0_1mismatch", "Set_0_2mismatch")
+hiv0.plot <- plot_scores(hiv0.sets, score.type = "primer.score")
+hiv0.plot
 
-plot_scores(sets.list, score.type = "total.score")
-plot_scores(sets.list, score.type = "ltrbit.score")
-plot_scores(sets.list, score.type = "primer.score")
+hiv1.sets <- list(simScores, hiv1_0_Scores, hiv1_1_Scores, hiv1_2_Scores)
+names(hiv1.sets) <- c("simSites", "Set_1_0mismatch", "Set_1_1mismatch", "Set_1_2mismatch")
+hiv1.plot <- plot_scores(hiv1.sets, score.type = "primer.score")
+hiv1.plot
+
+hiv0.CO.sets <- list(simScores, hiv0_CO_1_Scores, hiv0_CO_2_Scores)
+names(hiv0.CO.sets) <- c("simSites", "Set_0_CO_1mismatch", "Set_0_CO_2mismatch")
+hiv0.CO.plot <- plot_scores(hiv0.CO.sets, score.type = "primer.score")
+hiv0.CO.plot
+
+hiv1.CO.sets <- list(simScores, hiv1_CO_0_Scores, hiv1_CO_1_Scores, hiv1_CO_2_Scores)
+names(hiv1.CO.sets) <- c("simSites", "Set_1_CO_0mismatch", "Set_1_CO_1mismatch", "Set_1_CO_2mismatch")
+hiv1.CO.plot <- plot_scores(hiv1.CO.sets, score.type = "primer.score")
+hiv1.CO.plot
+
+hiv.sets <- list(simScores, hapScores, hiv0_0_Scores, hiv1_0_Scores)
+names(hiv.sets) <- c("simSites", "Lib4-HAP1", "Set_0_0mismatch", "Set_1_0mismatch")
+hiv.plot <- plot_scores(hiv.sets, score.type = "primer.score")
+hiv.stats <- t.test_scores(hiv.sets, score.type = "primer.score")
+hiv.plot
+hiv.stats
+
+#Partial sets looking at the upstream sequence complementarity to the LTRbit.
+ltr.cont.plot <- plot_scores(cont.sets, score.type = "ltrbit.score")
+ltr.cont.plot
+ltr.hiv1.CO.plot <- plot_scores(hiv1.CO.sets, score.type = "ltrbit.score")
+ltr.hiv1.CO.plot
+ltr.hiv.plot <- plot_scores(hiv.sets, score.type = "ltrbit.score")
+ltr.hiv.plot
+
+
