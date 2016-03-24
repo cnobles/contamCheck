@@ -95,3 +95,48 @@ ltr.hiv.plot <- plot_scores(hiv.sets, score.type = "ltrbit.score")
 ltr.hiv.plot
 
 
+
+#Building data set for trainging profile hidden Markov models
+ks.test(simScores$primer.score, round(rnorm(5000, mean = simMean, sd = sqrt(simVar))))
+
+hiv0_2_sampleInfo <- read.csv("~/intSiteData/multihit_clus_branch/Sample_Set_0/sampleInfo.tsv",
+                              sep = "\t")
+hiv0_2_sites <- lapply(hiv0_2_sampleInfo$alias, function(sampleName){
+  load_intSiteCaller_data(sampleName = sampleName, 
+                          dataType = "allSites", 
+                          dataDir = "~/intSiteData/multihit_clus_branch/Sample_Set_0")
+})
+hiv0_2_sites <- unlist(GRangesList(hiv0_2_sites[
+  sapply(hiv0_2_sites, class) == "GRanges"]))
+hiv0_2_seqs <- get_upstream_seqs(hiv0_2_sites, upstream = 50, genome = genome)
+
+misprimed.sites <- as.character(hiv0_2_Scores[
+  !hiv0_2_Scores$posid %in% hiv0_0_Scores$posid, "posid"
+  ])
+misprimedScores <- hiv0_2_Scores[hiv0_2_Scores$posid %in% misprimed.sites,]
+misprimedScores <- misprimedScores[misprimedScores$primer.score > 26,]
+misprimed.sites <- misprimedScores$posid
+
+
+misprimed.seqs <- hiv0_2_seqs[match(misprimed.sites, names(hiv0_2_seqs))]
+subset.misprimed.seqs <- sample(misprimed.seqs, 250)
+set.misprimed.seqs <- misprimed.seqs[!names(misprimed.seqs) %in% names(subset.misprimed.seqs)]
+writeXStringSet(subset.misprimed.seqs, 
+                filepath = "~/intSiteData/subset.misprimed.hiv0.fasta", 
+                format = "fasta")
+writeXStringSet(set.misprimed.seqs, 
+                filepath = "~/intSiteData/set.misprimed.hiv0.fasta", 
+                format = "fasta")
+
+hiv1_2_sampleInfo <- read.csv("~/intSiteData/multihit_clus_branch/HIVLAT_Set_1/sampleInfo.tsv",
+                              sep = "\t")
+hiv1_2_sites <- lapply(hiv1_2_sampleInfo$alias, function(sampleName){
+  load_intSiteCaller_data(sampleName = sampleName, 
+                          dataType = "allSites", 
+                          dataDir = "~/intSiteData/multihit_clus_branch/HIVLAT_Set_1")
+})
+hiv1_2_sites <- unlist(GRangesList(hiv1_2_sites[
+  sapply(hiv1_2_sites, class) == "GRanges"]))
+hiv1_2_seqs <- get_upstream_seqs(hiv1_2_sites, upstream = 50, genome = genome)
+writeXStringSet(hiv1_2_seqs, filepath = "~/intSiteData/set.hiv1.2mismatch.fasta", format = "fasta")
+

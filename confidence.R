@@ -31,7 +31,7 @@ get_upstream_seqs <- function(sites, upstream, genome){
 }
 
 aln_upstream_seqs <- function(pattern, seqs, submat, 
-                              gapOpen = 2, gapExt = 1, return = "scores"){
+                              gapOpen = 6, gapExt = 3, return = "scores"){
   aln <- pairwiseAlignment(
     pattern = seqs,
     subject = pattern,
@@ -158,4 +158,17 @@ t.test_scores <- function(score.list, score.type = "total.score"){
     score.list = score.list,
     score.type = score.type)
   pairwise.t.test(df$score, df$set, p.adjust.method = "bonferroni")
+}
+
+probability_test_scores <- function(score.df, ref.df, cutoff = 0.05, score.type = "primer.score"){
+  refMean <- mean(ref.df[, score.type])
+  refSd <- sd(ref.df[, score.type])
+  scores <- score.df[, score.type]
+  scores <- scores - refMean
+  scores <- ifelse(scores < 0, 0, scores)
+  prob.density <- dnorm(scores, sd = refSd)
+  score.df$prob.density <- prob.density
+  confidence <- scores + qnorm(cutoff, sd = refSd)
+  score.df$confidence <- ifelse(confidence > 0, "LC", "HC")
+  score.df
 }
