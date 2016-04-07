@@ -10,7 +10,7 @@ source_url("https://raw.githubusercontent.com/cnobles/cloneTracker/master/cloneT
 dataDir <- getwd()
 splitDir <- unlist(strsplit(dataDir, split = "/"))
 runName <- splitDir[length(splitDir)]
-sampleInfoFile <- grep("sampleInfo", list.files(path = dataDir), value = TRUE)
+sampleInfoFile <- grep("sampleInfo.tsv", list.files(path = dataDir), value = TRUE)
 sampleInfo <- read.csv(paste(dataDir,sampleInfoFile, sep = "/"), sep = "\t")
 sampleInfo$GTSP <- sapply(strsplit(
   as.character(sampleInfo$alias), 
