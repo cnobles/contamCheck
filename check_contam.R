@@ -133,7 +133,7 @@ uniq.allSites$patient <- sampleInfo[
 uniq.allSites <- split(uniq.allSites, uniq.allSites$patient)
 message("Checking for contamination between:")
 message(list(names(uniq.allSites)))
-possible.contam <- track_clones(uniq.allSites, gap = 5L, track.origin = FALSE)
+possible.contam <- track_clones(uniq.allSites, gap = 0L, track.origin = FALSE)
 
 #Post crossover check removal of redundant reads
 if(length(possible.contam) > 0){
