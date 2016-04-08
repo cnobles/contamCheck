@@ -140,3 +140,28 @@ hiv1_2_sites <- unlist(GRangesList(hiv1_2_sites[
 hiv1_2_seqs <- get_upstream_seqs(hiv1_2_sites, upstream = 50, genome = genome)
 writeXStringSet(hiv1_2_seqs, filepath = "~/intSiteData/set.hiv1.2mismatch.fasta", format = "fasta")
 
+cloneInfo <- read.csv(
+  file = "~/intSiteData/zero_mismatch/Clone_Run_Illumina_Data/sampleInfo.tsv",
+  sep = "\t")
+cloneSites <- lapply(cloneInfo$alias, function(sampleName){
+  load_intSiteCaller_data(
+    sampleName, 
+    "allSites",
+    dataDir = "~/intSiteData/zero_mismatch/Clone_Run_Illumina_Data")
+})
+cloneSites <- unlist(GRangesList(cloneSites[1:32]))
+cloneSites <- standardize_intsites(cloneSites, standardize_breakpoints = FALSE)
+cloneSeqs <- get_upstream_seqs(cloneSites, 35, genome)
+cloneScores <- test_confidence_scores(cloneSeqs, ltrbit, extPrimer)
+
+trueSites <- c("chr1+52699700", 
+               "chr17+77440127", 
+               "chr19+1330529", 
+               "chr1-153461600",
+               "chr1+148889088")
+
+falseCloneScores <- cloneScores[!cloneScores$posid %in% trueSites,]
+false.sets <- list(simScores, falseCloneScores)
+names(false.sets) <- c("simSites", "falseClones")
+false.plot <- plot_scores(false.sets, "primer.score")
+false.plot
