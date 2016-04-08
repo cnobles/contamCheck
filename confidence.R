@@ -172,3 +172,17 @@ probability_test_scores <- function(score.df, ref.df, cutoff = 0.05, score.type 
   score.df$confidence <- ifelse(confidence > 0, "LC", "HC")
   score.df
 }
+
+analyze_bps <- function(grl_of_sites){ #grl needs to be split by posid
+  bind_rows(lapply(grl_of_sites, function(sites){
+    grl <- split(sites, width(sites))
+    total.bp <- length(grl)
+    patient.crossover.count <- length(grep(TRUE, sapply(grl, function(x) length(unique(x$patient)) > 1)))
+    patient.crossover <- patient.crossover.count > 0
+    replicate.crossover.count <- length(grep(TRUE, sapply(grl, function(x) length(unique(x$sampleName)) > 1)))
+    replicate.crossover <- replicate.crossover.count > 0
+    data.frame("site" = unique(generate_posID(sites)), "total.bps" = total.bp, 
+               "patient.crossover" = patient.crossover, "patient.co.count" = patient.crossover.count,
+               "replicate.crossover" = replicate.crossover, "replicate.co.count" = replicate.crossover.count)
+  }))
+}
