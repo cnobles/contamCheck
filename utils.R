@@ -1,24 +1,24 @@
 #simulated Sites
 simSitesInfo <- read.csv(
-  "../intSiteData/multihit_clus_branch/simSites/sampleInfo.tsv", 
+  "~/intSiteData/multihit_clus_branch/simSites/sampleInfo.tsv", 
   sep = "\t")
 simSites <- unlist(GRangesList(lapply(simSitesInfo$alias, function(sampleName){
   load_intSiteCaller_data(
     sampleName,
     dataType = "allSites",
-    dataDir = "../intSiteData/multihit_clus_branch/simSites")
+    dataDir = "~/intSiteData/multihit_clus_branch/simSites")
 })))
 simSeqs <- get_upstream_seqs(simSites, upstream = 35, genome)
 simSeqs <- DNAStringSet(grep("N", simSeqs, value = TRUE, invert = TRUE))
 simScores <- test_confidence_scores(simSeqs, ltrbit, extPrimer)
 
 #HAP-1 sites 
-hapSitesInfo <- read.csv("../intSiteData/older_branches/blocking_oligo/sampleInfo.tsv", sep = "\t")
+hapSitesInfo <- read.delim("~/intSiteData/older_branches/blocking_oligo/sampleInfo.tsv")
 hapSites <- unlist(GRangesList(lapply(hapSitesInfo[1:12, "alias"], function(sampleName){
   load_intSiteCaller_data(
     sampleName,
     dataType = "allSites",
-    dataDir = "../intSiteData/older_branches/blocking_oligo"
+    dataDir = "~/intSiteData/older_branches/blocking_oligo"
   )
 })))
 hapSites <- remove_repeats(hapSites)
