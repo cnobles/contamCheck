@@ -10,8 +10,8 @@ setArguments <- function(){
   parser <- ArgumentParser(description = "Determine all integration site present across patients.")
   parser$add_argument("-s", "--specimen_database", default = "hiv_specimen.database", 
                       help = "Group to use for specimen data.")
-  parser$add_argument("-i", "--intsites_database", default = "hiv_intsites.database", 
-                      help = "Reference genome to use in intSiteCaller.")
+#  parser$add_argument("-i", "--intsites_database", default = "hiv_intsites.database", 
+#                      help = "Reference genome to use in intSiteCaller.")
   
   arguments <- parser$parse_args()
   arguments
@@ -20,7 +20,7 @@ setArguments <- function(){
 arguments <- setArguments()
 
 specimenDatabase <- arguments$specimen_database
-intSitesDatabase <- arguments$intsites_database
+#intSitesDatabase <- arguments$intsites_database
 
 if(specimenDatabase == "hiv_specimen.database"){
   specimenTable <- "nobles.hivsp"
