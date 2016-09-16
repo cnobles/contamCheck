@@ -5,8 +5,8 @@ Use:
 ```
 #Needs to be run in primary analysis directory
 Rscript path/to/contamCheck/check_contam.R
-Rscript path/to/contamCheck/check_contam.R -s hiv_specimen.database -i hiv_intsites.database
-Rscript path/to/contamCheck/check_contam.R --specimen_database hiv_specimen.database --intsites_database hiv_intsites.database
+Rscript path/to/contamCheck/check_contam.R -s hiv_specimen.database
+Rscript path/to/contamCheck/check_contam.R --specimen_database hiv_specimen.database 
 ```
 
 The script produces a tsv file ({DIRECTORY_NAME}.contam.stats.tsv) and an RData file ({DIRECTORY_NAME}.possible.contam.RData) which contains the positions of integrations sites and which samples they were found in.
