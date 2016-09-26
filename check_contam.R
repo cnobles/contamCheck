@@ -1,26 +1,45 @@
-options(stringsAsFactors = FALSE)
+##### Check and load dependances #####
+dependancies <- c("RMySQL", "devtools", "plyr", "dplyr", "Biostrings", 
+                  "GenomicRanges", "igraph")
 
-#Check and load packages
-rPackages <- c("RMySQL", "devtools", "argparse", "plyr", "dplyr")
-stopifnot(all(sapply(rPackages, require, 
-                     character.only=TRUE, quietly=TRUE, warn.conflicts=FALSE)))
-source_url("https://raw.githubusercontent.com/cnobles/cloneTracker/master/cloneTracker.SOURCE_ME.R")
+null <- sapply(dependancies, function(x){
+  suppressPackageStartupMessages(
+    try(library(x, character.only = TRUE), silent = TRUE))
+})
 
-setArguments <- function(){
-  parser <- ArgumentParser(description = "Determine all integration site present across patients.")
-  parser$add_argument("-s", "--specimen_database", default = "hiv_specimen.database", 
-                      help = "Group to use for specimen data.")
-#  parser$add_argument("-i", "--intsites_database", default = "hiv_intsites.database", 
-#                      help = "Reference genome to use in intSiteCaller.")
-  
-  arguments <- parser$parse_args()
-  arguments
+dependancies_present <- sapply(dependancies, function(package){
+  package <- paste0("package:", package)
+  logic <- package %in% search()
+})
+
+if(FALSE %in% dependancies_present){
+  Unloaded_Packages <- data.frame(package=as.character(dependancies), 
+                                  loaded=dependancies_present)
+  write.table(Unloaded_Packages, 
+              file = "Unloaded_Packages.tsv", 
+              quote = FALSE, 
+              row.names = FALSE)
+  stop("Load required packages. Check Unloaded_Packages.tsv for missing
+       dependancies.")
+}else{
+  remove(dependancies, dependancies_present)
+  message("Required packages loaded.")
 }
 
-arguments <- setArguments()
+source_url("https://raw.githubusercontent.com/cnobles/cloneTracker/master/cloneTracker.SOURCE_ME.R")
+source("contam_utils.R")
 
-specimenDatabase <- arguments$specimen_database
-#intSitesDatabase <- arguments$intsites_database
+
+##### Get commandline arguments #####
+# -s + specimen database for information about each patient in the dataset
+# -p to use primerID in checking methods
+args <- commandArgs(trailingOnly = FALSE)
+
+codeDir <- dirname(sub("--file=","",grep("--file=", args, value = TRUE)))
+specimenDatabase <- args[ grep("-d", args) + 1 ]
+primerID <- ifelse(length(grep("-p", args)) == 1, TRUE, FALSE)
+lsfhpc <- ifelse(length(grep("-bsub", args)) == 1, TRUE, FALSE)
+sgehpc <- ifelse(length(grep("-qsub", args)) == 1, TRUE, FALSE)
 
 if(specimenDatabase == "hiv_specimen.database"){
   specimenTable <- "nobles.hivsp"
@@ -28,15 +47,36 @@ if(specimenDatabase == "hiv_specimen.database"){
   specimenTable <- "specimen_management.gtsp"
 }
 
-##Set up working directory and load sampleInfo
+# Print arguments to verify to the user that the correct input was given
+message(paste0("Code Directory: ", codeDir))
+message(paste0("Specimen Database: ", specimenDatabase))
+message(paste0("Use PrimerID: ", ifelse(primerID, "Yes", "No")))
+message(paste0("Use LSF HPC (bsub): ", ifelse(lsfhpc, "Yes", "No")))
+message(paste0("Use SGE HPC (qsub): ", ifelse(sgehpc, "Yes", "No")))
+
+if(all(lsfhpc, sgehpc)){stop("Select either 'qsub' or 'bsub'.")}
+
+if(specimenDatabase == "hiv_specimen.database"){
+  specimenTable <- "nobles.hivsp"
+}else{
+  specimenTable <- "specimen_management.gtsp"
+}
+
+##### Set up working directory and load sampleInfo #####
 dataDir <- getwd()
 splitDir <- unlist(strsplit(dataDir, split = "/"))
 runName <- splitDir[length(splitDir)]
+
+## Change runName if name is too long, such as from a MiSeq run
+if(nchar(runName) > 25){
+  flowcell <- unlist(strsplit(runName, split = "-"))
+  flowcell <- flowcell[length(flowcell)]
+  runName <- flowcell
+}
+
 sampleInfoFile <- grep("sampleInfo.tsv", list.files(path = dataDir), value = TRUE)
 sampleInfo <- read.csv(paste(dataDir,sampleInfoFile, sep = "/"), sep = "\t")
-sampleInfo$specimen <- sapply(strsplit(
-  as.character(sampleInfo$alias), 
-  "-"), "[", 1)
+sampleInfo$specimen <- sapply(strsplit(as.character(sampleInfo$alias), "-"), "[", 1)
 
 if(any(grepl("UninfectedControl", sampleInfo$specimen))){
   uncPos <- grep("UninfectedControl", sampleInfo$specimen)
@@ -51,16 +91,13 @@ if(any(grepl("NoTemplateControl", sampleInfo$specimen))){
 }
 
 if(nrow(sampleInfo) > 0){
-  message(paste0("Loaded information for ", 
-                 nrow(sampleInfo), 
-                 " samples from ", 
-                 sampleInfoFile, 
-                 "."))
+  message(paste0("Loaded information for ", nrow(sampleInfo), " samples from ", 
+                 sampleInfoFile, "."))
 }else{
   message(paste0("No data loaded from ", sampleInfoFile, "."))
 }
 
-#Get patient information from specimen management database
+##### Get patient information from specimen management database #####
 specimen_query <- unique(sampleInfo[!sampleInfo$specimen == "UNC" &
                                       !sampleInfo$specimen == "NTC", "specimen"])
 
@@ -122,30 +159,8 @@ if(specimenDatabase == "hiv_specimen.database"){
   sampleInfo$patient <- patientInfo[match(sampleInfo$specimen, patientInfo$SpecimenAccNum), "Patient"]
 }
 
-#Load integration site data from intSiteCaller output
-load_intSiteCaller_data <- function(sampleName, dataType, dataDir){
-  content <- list.files(path = paste(dataDir, sampleName, sep = "/"))
-  isThere <- any(grepl(dataType, content))
-  
-  if(isThere){
-    file <- grep(dataType, content, value = TRUE)
-    filePath <- paste(dataDir, sampleName, file, sep = "/")
-    load(filePath)
-  }
-  
-  if(dataType == "allSites" & isThere){
-    allSites
-  }else if(dataType == "multihitData" & isThere){
-    multihitData
-  }else if(dataType == "keys" & isThere){
-    keys
-  }else if(dataType == "sites.final" & isThere){
-    sites.final
-  }else if(isThere){
-    stop("dataType not supported by this function. Check dataType.")
-  }
-}
-
+##### Load integration site data from intSiteCaller output #####
+#!!!!!! Need to add primerID section into this under the primerID conditional !!!!!!#
 message("Loading intSiteCaller information.")
 
 allSites <- lapply(sampleInfo$alias, function(sampleName){
@@ -184,7 +199,7 @@ possible.contam <- track_clones(uniq.allSites, gap = 0L, track.origin = FALSE)
 
 possible.contam.gr <- unlist(possible.contam)
 
-#Save data
+##### Save data #####
 message("Saving data.")
 save(possible.contam, 
      file = paste0(dataDir, "/", runName, ".possible.contam.RData"))
