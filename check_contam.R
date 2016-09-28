@@ -99,9 +99,8 @@ if(nrow(sampleInfo) > 0){
 specimen_query <- unique(sampleInfo[!sampleInfo$specimen == "UNC" &
                                       !sampleInfo$specimen == "NTC", "specimen"])
 
-message("Querying patient information for:")
-message(list(specimen_query))
-               
+message("Querying patient information for:\n", paste(specimen_query, collapse = ", "))
+
 junk <- sapply(dbListConnections(MySQL()), dbDisconnect) 
 dbConn <- dbConnect(MySQL(), group = specimenDatabase)  
 stopifnot(dbGetQuery(dbConn, "SELECT 1")==1) 
@@ -227,7 +226,7 @@ if(usePrimerID){
   possible.contam.primerID <- find_primerID_crossover(std.allSites)
   
   possible.contam <- list(possible.contam, possible.contam.primerID)
-  names(possible.contam) <- c("sites_crossing_over", "primerIDs_crossingover")
+  names(possible.contam) <- c("sites_crossing_over", "primerIDs_crossing_over")
 }
 
 ##### Save data #####
