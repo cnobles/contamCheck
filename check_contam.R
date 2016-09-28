@@ -1,6 +1,48 @@
-##### Check and load dependances #####
-dependancies <- c("RMySQL", "devtools", "plyr", "dplyr", "Biostrings", 
-                  "GenomicRanges", "igraph")
+# Get commandline arguments ----------------------------------------------------
+# -s + specimen database for information about each patient in the dataset
+# -p to use primerID in checking methods
+# -bsub to use the LSF queuing system
+# -qsub to use the SGE queuing system (or qsub alternative)
+# not supplying either -bsub or -qsub will process the script serially
+args <- commandArgs(trailingOnly = FALSE)
+
+codeDir <- dirname(sub("--file=","",grep("--file=", args, value = TRUE)))
+specimenDatabase <- args[ grep("-d", args) + 1 ]
+usePrimerID <- ifelse(any(grepl("-p", args)) == 1, TRUE, FALSE)
+lsfhpc <- ifelse(any(grepl("-bsub", args)) == 1, TRUE, FALSE)
+sgehpc <- ifelse(any(grepl("-qsub", args)) == 1, TRUE, FALSE)
+
+if(specimenDatabase == "hiv_specimen.database"){
+  specimenTable <- "nobles.hivsp"
+}else{
+  specimenTable <- "specimen_management.gtsp"
+}
+
+dataDir <- getwd()
+splitDir <- unlist(strsplit(dataDir, split = "/"))
+runName <- splitDir[length(splitDir)]
+
+## Change runName if name is too long, such as from a MiSeq run
+if(nchar(runName) > 25){
+  flowcell <- unlist(strsplit(runName, split = "-"))
+  flowcell <- flowcell[length(flowcell)]
+  runName <- flowcell
+}
+
+# Print arguments to verify to the user that the correct input was given
+message(paste0("Run Identifier: ", runName))
+message(paste0("Data Directory: ", dataDir))
+message(paste0("Code Directory: ", codeDir))
+message(paste0("Specimen Database: ", specimenDatabase))
+message(paste0("Use PrimerID: ", ifelse(usePrimerID, "Yes", "No")))
+message(paste0("Use LSF HPC (bsub): ", ifelse(lsfhpc, "Yes", "No")))
+message(paste0("Use SGE HPC (qsub): ", ifelse(sgehpc, "Yes", "No")))
+
+if(all(lsfhpc, sgehpc)){stop("Select either 'qsub' or 'bsub'.")}
+
+# Check and load dependances ---------------------------------------------------
+dependancies <- c("RMySQL", "devtools", "plyr", "dplyr", 
+                  "Biostrings", "GenomicRanges", "igraph")
 
 null <- sapply(dependancies, function(x){
   suppressPackageStartupMessages(
@@ -12,7 +54,7 @@ dependancies_present <- sapply(dependancies, function(package){
   logic <- package %in% search()
 })
 
-if(FALSE %in% dependancies_present){
+if(!any(dependancies_present)){
   Unloaded_Packages <- data.frame(package=as.character(dependancies), 
                                   loaded=dependancies_present)
   write.table(Unloaded_Packages, 
@@ -27,53 +69,9 @@ if(FALSE %in% dependancies_present){
 }
 
 source_url("https://raw.githubusercontent.com/cnobles/cloneTracker/master/cloneTracker.SOURCE_ME.R")
-source("contam_utils.R")
+source(file.path(codeDir, "contam_utils.R"))
 
-
-##### Get commandline arguments #####
-# -s + specimen database for information about each patient in the dataset
-# -p to use primerID in checking methods
-args <- commandArgs(trailingOnly = FALSE)
-
-codeDir <- dirname(sub("--file=","",grep("--file=", args, value = TRUE)))
-specimenDatabase <- args[ grep("-d", args) + 1 ]
-primerID <- ifelse(length(grep("-p", args)) == 1, TRUE, FALSE)
-lsfhpc <- ifelse(length(grep("-bsub", args)) == 1, TRUE, FALSE)
-sgehpc <- ifelse(length(grep("-qsub", args)) == 1, TRUE, FALSE)
-
-if(specimenDatabase == "hiv_specimen.database"){
-  specimenTable <- "nobles.hivsp"
-}else{
-  specimenTable <- "specimen_management.gtsp"
-}
-
-# Print arguments to verify to the user that the correct input was given
-message(paste0("Code Directory: ", codeDir))
-message(paste0("Specimen Database: ", specimenDatabase))
-message(paste0("Use PrimerID: ", ifelse(primerID, "Yes", "No")))
-message(paste0("Use LSF HPC (bsub): ", ifelse(lsfhpc, "Yes", "No")))
-message(paste0("Use SGE HPC (qsub): ", ifelse(sgehpc, "Yes", "No")))
-
-if(all(lsfhpc, sgehpc)){stop("Select either 'qsub' or 'bsub'.")}
-
-if(specimenDatabase == "hiv_specimen.database"){
-  specimenTable <- "nobles.hivsp"
-}else{
-  specimenTable <- "specimen_management.gtsp"
-}
-
-##### Set up working directory and load sampleInfo #####
-dataDir <- getwd()
-splitDir <- unlist(strsplit(dataDir, split = "/"))
-runName <- splitDir[length(splitDir)]
-
-## Change runName if name is too long, such as from a MiSeq run
-if(nchar(runName) > 25){
-  flowcell <- unlist(strsplit(runName, split = "-"))
-  flowcell <- flowcell[length(flowcell)]
-  runName <- flowcell
-}
-
+# Load sampleInfo --------------------------------------------------------------
 sampleInfoFile <- grep("sampleInfo.tsv", list.files(path = dataDir), value = TRUE)
 sampleInfo <- read.csv(paste(dataDir,sampleInfoFile, sep = "/"), sep = "\t")
 sampleInfo$specimen <- sapply(strsplit(as.character(sampleInfo$alias), "-"), "[", 1)
@@ -97,7 +95,7 @@ if(nrow(sampleInfo) > 0){
   message(paste0("No data loaded from ", sampleInfoFile, "."))
 }
 
-##### Get patient information from specimen management database #####
+# Get patient information from specimen management database --------------------
 specimen_query <- unique(sampleInfo[!sampleInfo$specimen == "UNC" &
                                       !sampleInfo$specimen == "NTC", "specimen"])
 
@@ -130,8 +128,7 @@ if(specimenDatabase == "hiv_specimen.database"){
   isThere <- unique(patientInfo$SpecimenAccNum)
 }
 stopifnot( (NA %in% match(specimen_query, isThere)) == FALSE)
-message("Received patient information for:")
-message(list(isThere))
+message("Received patient information for:\n", paste(isThere, collapse = ", "))
 
 if(specimenDatabase == "hiv_specimen.database"){
   if(any(grepl("UNC", sampleInfo$specimen))){
@@ -144,7 +141,9 @@ if(specimenDatabase == "hiv_specimen.database"){
       "parentAlias" = "NTC", "patient" = "NTC")
       )
   }
-  sampleInfo$patient <- patientInfo[match(sampleInfo$specimen, patientInfo$parentAlias), "patient"]
+  sampleInfo$patient <- patientInfo[
+    match(sampleInfo$specimen, patientInfo$parentAlias), 
+    "patient"]
 }else{
   if(any(grepl("UNC", sampleInfo$specimen))){
     patientInfo <- rbind(patientInfo, data.frame(
@@ -156,26 +155,37 @@ if(specimenDatabase == "hiv_specimen.database"){
       "SpecimenAccNum" = "NTC", "Patient" = "NTC")
     )
   }
-  sampleInfo$patient <- patientInfo[match(sampleInfo$specimen, patientInfo$SpecimenAccNum), "Patient"]
+  sampleInfo$patient <- patientInfo[
+    match(sampleInfo$specimen, patientInfo$SpecimenAccNum), 
+    "Patient"]
 }
 
-##### Load integration site data from intSiteCaller output #####
+# Load integration site data from intSiteCaller output -------------------------
 #!!!!!! Need to add primerID section into this under the primerID conditional !!!!!!#
 message("Loading intSiteCaller information.")
 
-allSites <- lapply(sampleInfo$alias, function(sampleName){
-  load_intSiteCaller_data(sampleName, "allSites", dataDir)
-})
-names(allSites) <- sampleInfo$alias
+allSites <- lapply(sampleInfo$alias, 
+                   load_intSiteCaller_data,
+                   dataType = "allSites", 
+                   dataDir = dataDir)
 
-if( length(allSites) == nrow(sampleInfo)){
-  message("intSiteCaller data loaded.")
+names(allSites) <- sampleInfo$alias
+if( length(allSites) == nrow(sampleInfo)) message("Unique sites data loaded.")
+allSites <- allSites[sapply(allSites, length) > 0]
+
+if(usePrimerID){
+  primerIDs <- lapply(sampleInfo$alias,
+                      load_intSiteCaller_data, 
+                      dataType = "primerIDData", 
+                      dataDir = dataDir)
+
+  names(primerIDs) <- sampleInfo$alias
+  if( length(primerIDs) == nrow(sampleInfo)) message("PrimerID data loaded.")
+  primerIDs <- primerIDs[sapply(primerIDs, length) > 0]
 }
 
 #Process data for contamination
-message(paste0("Standardizing ", 
-               sum(sapply(allSites, length)), 
-               " unique reads."))
+message(paste0("Standardizing ", sum(sapply(allSites, length)), " unique reads."))
 allSites <- allSites[sapply(allSites, class) == "GRanges"]
 std.allSites <- standardize_intsites(unlist(GRangesList(allSites)), 
                                      standardize_breakpoints = TRUE)
@@ -192,12 +202,33 @@ uniq.allSites$specimen <- sampleInfo[
   match(uniq.allSites$sampleName, sampleInfo$alias), "specimen"]
 uniq.allSites$patient <- sampleInfo[
   match(uniq.allSites$sampleName, sampleInfo$alias), "patient"]
+
 uniq.allSites <- split(uniq.allSites, uniq.allSites$patient)
 message("Checking for contamination between:")
 message(list(names(uniq.allSites)))
 possible.contam <- track_clones(uniq.allSites, gap = 0L, track.origin = FALSE)
 
 possible.contam.gr <- unlist(possible.contam)
+
+if(usePrimerID){
+  #Merge primerIDs with std.allSites based on read names
+  primerIDs <- do.call(c, lapply(1:length(primerIDs), function(i){primerIDs[[i]]}))
+  
+  std.allSites$specimen <- sampleInfo[
+    match(std.allSites$sampleName, sampleInfo$alias), "specimen"]
+  std.allSites$patient <- sampleInfo[
+    match(std.allSites$sampleName, sampleInfo$alias), "patient"]
+  
+  std.allSites$primerID <- primerIDs[
+    paste0(std.allSites$sampleName, "%", std.allSites$ID)]
+  
+  message("PrimerIDs merged to alignment information.")
+  
+  possible.contam.primerID <- find_primerID_crossover(std.allSites)
+  
+  possible.contam <- list(possible.contam, possible.contam.primerID)
+  names(possible.contam) <- c("sites_crossing_over", "primerIDs_crossingover")
+}
 
 ##### Save data #####
 message("Saving data.")
