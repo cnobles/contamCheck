@@ -8,9 +8,10 @@ args <- commandArgs(trailingOnly = FALSE)
 
 codeDir <- dirname(sub("--file=","",grep("--file=", args, value = TRUE)))
 specimenDatabase <- args[ grep("-d", args) + 1 ]
-usePrimerID <- ifelse(any(grepl("-p", args)) == 1, TRUE, FALSE)
-lsfhpc <- ifelse(any(grepl("-bsub", args)) == 1, TRUE, FALSE)
-sgehpc <- ifelse(any(grepl("-qsub", args)) == 1, TRUE, FALSE)
+usePrimerID <- any(grepl("-p", args))
+debug <- any(grepl("--debug", args) 
+lsfhpc <- any(grepl("-bsub", args))
+sgehpc <- any(grepl("-qsub", args))
 
 if(specimenDatabase == "hiv_specimen.database"){
   specimenTable <- "nobles.hivsp"
@@ -35,6 +36,7 @@ message(paste0("Data Directory: ", dataDir))
 message(paste0("Code Directory: ", codeDir))
 message(paste0("Specimen Database: ", specimenDatabase))
 message(paste0("Use PrimerID: ", ifelse(usePrimerID, "Yes", "No")))
+message(paste0("Debug: ", ifelse(debug, "Yes", "No")))
 message(paste0("Use LSF HPC (bsub): ", ifelse(lsfhpc, "Yes", "No")))
 message(paste0("Use SGE HPC (qsub): ", ifelse(sgehpc, "Yes", "No")))
 
@@ -302,10 +304,11 @@ if(usePrimerID){
   )
   stats <- rbind(stats, primerIDStats)
 }
+
 write.table(stats, file = paste0(dataDir, "/", runName, ".contam.stats.tsv"), 
             quote = FALSE, sep = "\t", row.names = FALSE)
 save(possible.contam, 
      file = paste0(dataDir, "/", runName, ".possible.contam.RData"))
-save.image(file = "contamCheckImage.RData")
+if(debug) save.image(file = "contamCheckImage.RData")
 message("Check complete.")
 q()
