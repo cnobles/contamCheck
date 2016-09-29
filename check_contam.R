@@ -9,7 +9,7 @@ args <- commandArgs(trailingOnly = FALSE)
 codeDir <- dirname(sub("--file=","",grep("--file=", args, value = TRUE)))
 specimenDatabase <- args[ grep("-d", args) + 1 ]
 usePrimerID <- any(grepl("-p", args))
-debug <- any(grepl("--debug", args) 
+debug <- any(grepl("--debug", args))
 lsfhpc <- any(grepl("-bsub", args))
 sgehpc <- any(grepl("-qsub", args))
 
