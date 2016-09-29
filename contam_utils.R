@@ -85,8 +85,17 @@ find_primerID_crossover <- function(sites){
     filter(., patients >1)
   
   sites_shared_by_reps <- sites[sites$primerID %in% ids_shared_by_reps$primerID]
+  sites_shared_by_reps <- sites_shared_by_reps[
+    sites_shared_by_reps$posID %in% ids_shared_by_reps$posID
+  ]
   sites_shared_by_spec <- sites[sites$primerID %in% ids_shared_by_spec$primerID]
+  sites_shared_by_spec <- sites_shared_by_spec[
+    sites_shared_by_spec$posID %in% ids_shared_by_spec$posID
+  ]
   sites_shared_by_pats <- sites[sites$primerID %in% ids_shared_by_pats$primerID]
+  sites_shared_by_pats <- sites_shared_by_pats[
+    sites_shared_by_pats$posID %in% ids_shared_by_pats$posID
+  ]
   
   list_of_ids <- list(ids_shared_by_reps, ids_shared_by_spec, ids_shared_by_pats)
   id_names <- c("ids_shared_by_reps", "ids_shared_by_spec", "ids_shared_by_pats")
