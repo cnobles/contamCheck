@@ -42,7 +42,7 @@ if(all(lsfhpc, sgehpc)){stop("Select either 'qsub' or 'bsub'.")}
 
 # Check and load dependances ---------------------------------------------------
 dependancies <- c("RMySQL", "devtools", "plyr", "dplyr", 
-                  "Biostrings", "GenomicRanges", "igraph")
+                  "Biostrings", "GenomicRanges", "igraph", "devtools")
 
 null <- sapply(dependancies, function(x){
   suppressPackageStartupMessages(
