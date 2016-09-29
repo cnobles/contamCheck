@@ -1,14 +1,15 @@
 # Get commandline arguments ----------------------------------------------------
-# -s + specimen database for information about each patient in the dataset
-# -p to use primerID in checking methods
+# --specimendb + specimen database for information about each patient in the dataset
+# --primerid to use primerID in checking methods
+# --debug to save image of final global environment
 # -bsub to use the LSF queuing system
 # -qsub to use the SGE queuing system (or qsub alternative)
 # not supplying either -bsub or -qsub will process the script serially
 args <- commandArgs(trailingOnly = FALSE)
 
 codeDir <- dirname(sub("--file=","",grep("--file=", args, value = TRUE)))
-specimenDatabase <- args[ grep("-s", args, fixed = TRUE) + 1 ]
-usePrimerID <- any(grepl("-p", args, fixed = TRUE))
+specimenDatabase <- args[ grep("--specimendb", args, fixed = TRUE) + 1 ]
+usePrimerID <- any(grepl("--primerid", args, fixed = TRUE))
 debug <- any(grepl("--debug", args, fixed = TRUE))
 lsfhpc <- any(grepl("-bsub", args))
 sgehpc <- any(grepl("-qsub", args))
