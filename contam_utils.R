@@ -54,12 +54,13 @@ group_sites <- function(sites){
 }
 
 find_primerID_crossover <- function(sites){
+  if(!any(grepl("posID", names(mcols(sites))))) sites$posID <- generate_posID(sites)
   sites.df <- as.data.frame(sites)
   IDs <- table(sites.df$primerID)
   two_or_more <- sites.df %>%
     filter(primerID %in% names(IDs[IDs >= 2])) %>%
-    select(., patient, specimen, sampleName, primerID) %>%
-    group_by(primerID) %>% 
+    select(., patient, specimen, sampleName, primerID, posID) %>%
+    group_by(primerID, posID) %>% 
     summarize(
       patients = n_distinct(patient),
       specimens = n_distinct(specimen), 
@@ -68,6 +69,9 @@ find_primerID_crossover <- function(sites){
     ungroup(.)
   
   sites_w_shared_id <- sites[sites$primerID %in% two_or_more$primerID]
+  sites_w_shared_id <- sites_w_shared_id[
+    sites_w_shared_id$posID %in% two_or_more$posID
+  ]
   
   ids_shared_by_reps <- two_or_more %>%
     filter(., patients == 1) %>%
