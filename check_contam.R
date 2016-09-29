@@ -230,9 +230,7 @@ if(usePrimerID){
 }
 
 ##### Save data #####
-message("Saving data.")
-save(possible.contam, 
-     file = paste0(dataDir, "/", runName, ".possible.contam.RData"))
+message("Writing and saving data.")
 
 if(specimenDatabase == "hiv_specimen.database"){
   stats <- data.frame(
@@ -289,8 +287,25 @@ if(specimenDatabase == "hiv_specimen.database"){
                "UninfectedXOver", "NoTemplateXOver")
   )
 }
+
+if(usePrimerID){
+  primerIDStats <- data.frame(
+    "amount" = c(
+      nrow(possible.contam.primerID$primerIDs$ids_shared_by_reps),
+      nrow(possible.contam.primerID$primerIDs$ids_shared_by_spec),
+      nrow(possible.contam.primerID$primerIDs$ids_shared_by_pats),
+      length(possible.contam.primerID$sites_sharing_primerIDs$sites_shared_by_reps),
+      length(possible.contam.primerID$sites_sharing_primerIDs$sites_shared_by_spec),
+      length(possible.contam.primerID$sites_sharing_primerIDs$sites_shared_by_pats)),
+    "stat" = c("IDsSharedByReplicates", "IDsSharedBySpecimens", "IDsSharedByPatients",
+               "SonicFragsXOverByRep", "SonicFragsXOverBySpec", "SonicFragsXOverByPat")
+  )
+  stats <- rbind(stats, primerIDStats)
+}
 write.table(stats, file = paste0(dataDir, "/", runName, ".contam.stats.tsv"), 
             quote = FALSE, sep = "\t", row.names = FALSE)
+save(possible.contam, 
+     file = paste0(dataDir, "/", runName, ".possible.contam.RData"))
+save.image(file = "contamCheckImage.RData")
 message("Check complete.")
-
-
+q()
